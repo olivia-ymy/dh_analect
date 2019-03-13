@@ -9,7 +9,7 @@ import re
 #导入人物字典{人物序号：[姓名列表]}
 def get_charadict(infile):
     chara_dict = {}
-    for each_line in open(infile).readlines():
+    for each_line in open(infile,encoding='utf-8').readlines():
         line_content = each_line.strip('\t').split()
         #print(line_content)
         
@@ -29,7 +29,7 @@ def name_to_index(chara_dict):
 #导入论语原文为字典{章节：原文}
 def clean_content(infile):
     contents = {}
-    for each_line in open(infile,'r').readlines():
+    for each_line in open(infile,'r',encoding='utf-8').readlines():
         line_content = re.split(r'[()]', each_line)
         contents[line_content[1]] = line_content[2]
     return(contents)
@@ -76,32 +76,30 @@ chara2content = chara_match(name2index, content_dict, chara2content)
 
 
 #概念匹配
-index2concept = get_charadict('concepts.txt')
-concept_num = len(index2concept.keys())
+index2concept = get_charadict('concepts_5.txt')
+concept_num = len(index2concept.keys())#共有多少个概念
 concept2index = name_to_index(index2concept)
 #print(concept2index)
 
 #content_dict = clean_content("analects.txt")
 
-#建立停用词字典
-stopword = ['弟子', '兄弟', '不知', '天下', '短命', '之命', '复命', '君命', '受命', 
-            '授命', '国命', '将命', '致命', '命禹', '道千乘之国', '中道', '道路',
-           '直道而行', '文章', '文王', '道不行', '三人行', '由之行诈也', '行不履阈',
-           '驾行', '徒行', '行人', '并行', '明日遂行', '行夏之时', '好行小慧',
-           '孔子行', '行以告', '至则行矣', '行焉', '思无邪', '原思', '温故', '#御',
-           '先生', '生而知之', '天生', '后生', '平生', '百物生焉', '死矣']
+#打开停用词字典
+stopwords = []
+for each_line in open('stopwords.txt',encoding='utf-8').readlines():
+    stopwords.append(each_line.strip())
+
 i = 1
-stopword_dict = {}
-for w in stopword:
-    stopword_dict[w] = i
+stopwords_dict = {}
+for w in stopwords:
+    stopwords_dict[w] = i
     i += 1
 #print(len(stopword), stopword_dict)
 
 #除去原文中的停用词
 stopword2content = {}
-for i in range(1, len(stopword) + 1):
+for i in range(1, len(stopwords) + 1):
     stopword2content[i] = []
-stopword2content = chara_match(stopword_dict, content_dict, stopword2content)
+stopword2content = chara_match(stopwords_dict, content_dict, stopword2content)
 
 #匹配原文中的概念
 concept2content = {}
@@ -129,7 +127,7 @@ for n in range(1, concept_num + 1):
 #概念-概念图，交叉点是概念共现的次数，出现在同一小节+1（gelphi）
 content2concept = {}
 for i in range(1, 21):
-    content2concept[i] = [0] * 57
+    content2concept[i] = [0] * concept_num
 
 for con in concept2content.keys():
     for c in concept2content[con]:
@@ -152,9 +150,9 @@ mpl.rcParams['font.sans-serif'] = ['SimHei']
 
 chapter = np.arange(1, 21, 1)
 appear = {}
-for i in range(0, 57):
+for i in range(0, concept_num):
     appear[i] = []
-for i in range(0, 57):
+for i in range(0, concept_num):
     for c in chapter:
         appear[i].append(content2concept[c][i])
     for j in range(len(appear[i])):
@@ -163,21 +161,21 @@ for i in range(0, 57):
 #print(appear)
 
 y = {}
-for i in range(0, 57):
+for i in range(0, concept_num):
     y[i] = [i + 1] * 20
 
 ylabels = []
-for i in range(1, 58):
+for i in range(1, concept_num+1):
     ylabels.append(index2concept[i][0])
 figure, ax = plt.subplots(figsize= (10, 20))
-ax.set_yticks(np.arange(1, 58, 1))
+ax.set_yticks(np.arange(1, concept_num+1, 1))
 ax.set_xticks(np.arange(1, 21, 1))
 ax.set_xlabel('章节号')
 ax.set_ylabel('概念')
 ax.set_title('概念-章节号气泡图')
 ax.set_yticklabels(ylabels)
 
-for i in range(0, 57):
+for i in range(0, concept_num):#
     plt.scatter(chapter, y[i], s = appear[i] * 1000, alpha = 0.6)
 
 #plt.savefig('concept_chapter_bubble.png')
