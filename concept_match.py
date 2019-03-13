@@ -9,10 +9,10 @@ import re
 #导入人物字典{人物序号：[姓名列表]}
 def get_charadict(infile):
     chara_dict = {}
-    for each_line in open(infile).readlines():
+    for each_line in open(infile,encoding='utf-8').readlines():
         line_content = each_line.strip('\t').split()
         #print(line_content)
-
+        
         chara_dict[int(line_content[0])] = []
         for i in range(1, len(line_content)):
             chara_dict[int(line_content[0])].append(line_content[i])
@@ -29,7 +29,7 @@ def name_to_index(chara_dict):
 #导入论语原文为字典{章节：原文}
 def clean_content(infile):
     contents = {}
-    for each_line in open(infile,'r').readlines():
+    for each_line in open(infile,'r',encoding='utf-8').readlines():
         line_content = re.split(r'[()]', each_line)
         contents[line_content[1]] = line_content[2]
     return(contents)
@@ -38,7 +38,7 @@ def clean_content(infile):
 def chara_match(names, contents, cha2con):
     #将所有姓名按长度降序排列
     name = sorted(names, key= lambda x:len(x), reverse= True)
-
+        
     for n in name:
         pattern = re.compile(n)
         for chapter in contents.keys():
@@ -64,24 +64,37 @@ content_dict = clean_content("analects.txt")
 chara2content = {}
 for i in range(1, chara_num + 1):
     chara2content[i] = []
+#人物对应于出现其中的章节
 chara2content = chara_match(name2index, content_dict, chara2content)
 
+# In[106]:
 #概念匹配
-index2concept = get_charadict('onegram_3.txt')
+#concept_list='onegram_3.txt'
+#concept_list='onegram_5.txt'
+#concept_list='onegram_10.txt'
+concept_list='concepts_5.txt'
+#concept_list='concepts_60.txt'
+#concept_list='concepts_172.txt'
+
+index2concept = get_charadict(concept_list)
+#概念个数
 concept_num = len(index2concept.keys())
 concept2index = name_to_index(index2concept)
 
 #匹配原文中的概念
+content_dict = clean_content("analects.txt")
 concept2content = {}
 for i in range(1, concept_num + 1):
     concept2content[i] = []
+#概念对应于出现其中的章节
 concept2content = chara_match(concept2index, content_dict, concept2content)
-
+# In[107]:
 #对匹配的章节字符串排序
 def chapter_num(s):
     slist = s.split('.')
     return(int(slist[0]))
 
+print('概念号，出现此概念对应的章节号')
 for n in range(1, concept_num + 1):
     #除去重复章节
     concept2content[n] = set(concept2content[n])
@@ -91,7 +104,6 @@ for n in range(1, concept_num + 1):
 
 
 # In[106]:
-
 
 core_concept = list(concept2content.keys())
 '''
@@ -251,6 +263,7 @@ tail_whole_simi = cos_simi(tfidf[-1], tfidf[-3])
 
 
 for i in range(20):
+    print(str(i+1),end=' ')
     print(chapter_whole_simi[i])
 
 print(head_whole_simi, tail_whole_simi)
