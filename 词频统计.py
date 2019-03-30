@@ -1,10 +1,45 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Mar 30 11:46:54 2019
 
-# coding: utf-8
-
-# In[47]:
-
-
+@author: y
+"""
+from collections import Counter
 import re
+
+# 创建停用词list
+def stopwordslist(filepath):
+    stopwords = [line.strip() for line in open(filepath, 'r', encoding="utf-8").readlines()]
+    return stopwords
+
+#每个字符后面加空格
+def withspace(s):
+    s=s.replace('/',' ')
+    return s.split(' ')
+# 对句子进行分词
+def seg_sentence(sentence):
+    sentence_seged = withspace(sentence.strip())
+    stopwords = stopwordslist('标点符号.txt')  #将标点符号停用
+    outstr = []
+    for word in sentence_seged:
+        if word not in stopwords:
+            if word != '\t':
+                outstr.append(word)
+    return outstr
+ 
+term_frequency={}
+ 
+with open('analects_chapter_cut.txt', 'r', encoding="utf-8") as inputs:#加载要处理的文件的路径
+    lineno=1
+    for line in inputs.readlines():
+        line=line.replace('【','')
+        line=line.replace('】','')
+        line=re.sub('\(\d+\.\d+\)','',line)
+        line_seg = seg_sentence(line)  # 这里的返回值是字符串
+        ac=Counter(line_seg)
+        data = dict(ac.most_common())#排序操作。ac.most_common(5) # 按序输出出现次数top5的元素，如不指定数字，则按序输出全部元素
+        term_frequency[lineno]=data
+        lineno=lineno+1
 
 #导入人物字典{人物序号：[姓名列表]}
 def get_charadict(infile):
@@ -26,170 +61,61 @@ def name_to_index(chara_dict):
             name_dict[name] = index
     return(name_dict)
 
-#导入论语原文为字典{章节：原文}
-def clean_content(infile):
-    contents = {}
-    for each_line in open(infile,'r',encoding='utf-8').readlines():
-        line_content = re.split(r'[()]', each_line)
-        contents[line_content[1]] = line_content[2]
-    return(contents)
 
-#人物姓名匹配，生成匹配字典{人物序号：[出现章节列表]}
-def chara_match(names, contents, cha2con):
-    #将所有姓名按长度降序排列
-    name = sorted(names, key= lambda x:len(x), reverse= True)
-        
-    for n in name:
-        pattern = re.compile(n)
-        for chapter in contents.keys():
-            #在原文中匹配姓名
-            result = pattern.findall(contents[chapter])
-            #如果有匹配，将原文中姓名替换为'#'，防止重复匹配
-            contents[chapter] = re.sub(pattern, '#', contents[chapter])
-            for i in range(len(result)):
-                cha2con[names[n]].append(chapter)
-                #print(n, name, chapter)
-    return(cha2con)
+#concept_list='onegram_3.txt'
+#concept_list='onegram_5.txt'
+#concept_list='onegram_10.txt'
+#concept_list='concepts_5.txt'
+concept_list='concepts_60.txt'
+#concept_list='concepts_170.txt'
 
+index2concept = get_charadict(concept_list)
+#概念个数
+concept_num = len(index2concept.keys())
+concept2index = name_to_index(index2concept)
 
-# In[105]:
-#生成人名匹配
-def chara2content_produce():
-    index2name = get_charadict("character.txt")
-    chara_num = len(index2name.keys())
-    name2index = name_to_index(index2name)
     
-    content_dict = clean_content("analects.txt")
-    chara2content = {}
-    for i in range(1, chara_num + 1):
-        chara2content[i] = []
-    #人物对应于出现其中的章节
-    chara2content = chara_match(name2index, content_dict, chara2content)
-    return chara2content
-# In[106]:
-#生成概念匹配
-def concept2content_produce():
-    #concept_list='onegram_3.txt'
-    #concept_list='onegram_5.txt'
-    #concept_list='onegram_10.txt'
-    concept_list='concepts_5.txt'
-    #concept_list='concepts_60.txt'
-    #concept_list='concepts_172.txt'
+content2concept = {}
+for i in range(1, 21):
+    index2count={}
+    for j in range(1,concept_num+1):#初始化
+        index2count[j]=0
+    for key in concept2index.keys():
+        frequency_dict=term_frequency[i]
+        if key in frequency_dict:
+#            print(key,frequency_dict[key])
+            index2count[concept2index[key]]+=frequency_dict[key]
+    line_count=[]
+    for j in range(1,concept_num+1):
+        line_count.append(index2count[j])
+    content2concept[i]=line_count
+
+#获取整部、前半部、后半部-全部概念文档词频向量
+whole_part = [0] * concept_num
+head_part = [0] * concept_num
+tail_part = [0] * concept_num
+for i in range(len(content2concept)):
+    for j in range(concept_num):
+        whole_part[j] += content2concept[i+1][j]
+    if i<10:
+        for j in range(concept_num):
+            head_part[j] += content2concept[i+1][j]
+    else:
+        for j in range(concept_num):
+            tail_part[j] += content2concept[i+1][j]
     
-    index2concept = get_charadict(concept_list)
-    #概念个数
-    concept_num = len(index2concept.keys())
-    concept2index = name_to_index(index2concept)
-    
-    #匹配原文中的概念
-    content_dict = clean_content("analects.txt")
-    concept2content = {}
-    for i in range(1, concept_num + 1):
-        concept2content[i] = []
-    #概念对应于出现其中的章节
-    concept2content = chara_match(concept2index, content_dict, concept2content)
-    return concept2content,concept_num,index2concept
-# In[107]:
-#对匹配的章节字符串排序
-def chapter_num(s):
-    slist = s.split('.')
-    return(int(slist[0]))
-#概念对应出现的章节号
-concept2content = {}
-concept2content = concept2content_produce()[0]
-#概念数
-concept_num = concept2content_produce()[1]
-#索引号to概念
-index2concept= concept2content_produce()[2]
+counts = []
+for con in content2concept.keys():
+    counts.append(content2concept[con])
+counts.append(whole_part)
+counts.append(head_part)
+counts.append(tail_part)
+len(counts[0])
 
-print('概念索引号，概念，出现此概念对应的章节号')
-for n in range(1, concept_num + 1):
-    #除去重复章节
-    concept2content[n] = set(concept2content[n])
-    concept2content[n] = list(concept2content[n])
-    concept2content[n].sort(key = chapter_num)
-    print(n, index2concept[n], concept2content[n])
-
-
-# In[106]:
-
-core_concept = list(concept2content.keys())
-
-'''
-#获取核心概念（出现频次大于平均值）
-core_concept = []
-for k in concept2content.keys():
-    if len(concept2content[k]) > 12:
-        core_concept.append(k)
-
-#交换个别核心概念的位置，使图更好看
-core_concept[2], core_concept[19] = core_concept[19], core_concept[2]
-core_concept[3], core_concept[31] = core_concept[31], core_concept[3]
-core_concept[4], core_concept[42] = core_concept[42], core_concept[4]
-'''
-
-# In[76]:
-
-
-#概念-章节图，纵向章节，横向概念，交叉点是概念在章节出现的次数
-#获得章节-核心概念文档向量
-#content2coreconcept = {}
-#for i in range(1, 21):
-#    content2coreconcept[i] = [0] * len(core_concept)
-#
-#for i in range(len(core_concept)):
-#    for c in concept2content[core_concept[i]]:
-#        chapter = int(c.split('.')[0])
-#        content2coreconcept[chapter][i] += 1
-
-
-# In[107]:
-
-def getcounts(concept2content):
-    #获得章节-全部概念文档词频向量
-    content2concept = {}
-    for i in range(1, 21):
-        content2concept[i] = [0] * len(concept2content)
-    
-    for i in range(len(concept2content)):
-        #print(i)
-        for c in concept2content[i+1]:
-            chapter = int(c.split('.')[0])
-            content2concept[chapter][i] += 1
-    
-    #获取整部、前半部、后半部-全部概念文档词频向量
-    whole_part = [0] * len(concept2content)
-    head_part = [0] * len(concept2content)
-    tail_part = [0] * len(concept2content)
-    for i in range(len(content2concept)):
-        for j in range(len(concept2content)):
-            whole_part[j] += content2concept[i+1][j]
-        if i<10:
-            for j in range(len(concept2content)):
-                head_part[j] += content2concept[i+1][j]
-        else:
-            for j in range(len(concept2content)):
-                tail_part[j] += content2concept[i+1][j]
-    
-    counts = []
-    for con in content2concept.keys():
-        counts.append(content2concept[con])
-    counts.append(whole_part)
-    counts.append(head_part)
-    counts.append(tail_part)
-    len(counts[0])
-    return counts
-
-#算法一：概念在每章的每个小节出现的次数
-
-#算法二：按照所有出现次数，而不是在每章中个别节出现的次数
-
-#算法三：采用两种集合相似度的方法
+core_concept = list(index2concept.keys())
 
 # In[108]:
     
-counts=getcounts(concept2content)
-
 #获得每一章节的tf-idf文档向量
 from sklearn.feature_extraction.text import TfidfTransformer
 transformer = TfidfTransformer()
