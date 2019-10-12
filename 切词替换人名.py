@@ -28,28 +28,26 @@ def name_to_index(chara_dict):
     return(name_dict)
 
 #替换人名
-def replace_names():
-    index2name = get_charadict("character.txt")
-    name2index = name_to_index(index2name)
-    
-    names=[]
-    for key in name2index.keys():
-        names.append(key)
-        print(key)
-    
-    names_split=[]
-    for name in names:
-        name='/'.join(name)
-        names_split.append(name)
-        print(name)
-    
-    
-    def replaceName(string,text):
-        return re.sub(string, string.replace('/',''), text);
-    #
-    #
-    for each_line in open('analects_chapter_cut.txt','r',encoding='utf-8').readlines():
-        for name_s in names_split:
-            each_line=replaceName(name_s,each_line)
-        print(each_line)
+def replaceName(string,text):
+    return re.sub(string, string.replace('/',''), text);
+
+index2name = get_charadict("character.txt")
+name2index = name_to_index(index2name)
+
+names=[]
+for key in name2index.keys():
+    names.append(key)
+    print(key)
+
+names_split=[]
+for name in names:
+    name='/'.join(name)
+    names_split.append(name)
+    print(name)
+#
+#
+for each_line in open('analects_chapter_cut.txt','r',encoding='utf-8').readlines():
+    for name_s in names_split:
+        each_line=replaceName(name_s,each_line)
+    print(each_line)
 
